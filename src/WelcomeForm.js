@@ -8,6 +8,7 @@ import Button from "@material-ui/core/Button";
 import Link from "@material-ui/core/Link";
 import Typography from "@material-ui/core/Typography";
 import GlobalState from "./GlobalState";
+import * as EmailValidator from "email-validator";
 
 import Dialog from "@material-ui/core/Dialog";
 import DialogActions from "@material-ui/core/DialogActions";
@@ -20,7 +21,14 @@ import HttpsIcon from "@material-ui/icons/Https";
 import { BrowserView, MobileView, isMobile } from "react-device-detect";
 
 import AirplanemodeActiveIcon from "@material-ui/icons/AirplanemodeActive";
-import { Grid } from "@material-ui/core";
+import {
+  Backdrop,
+  Checkbox,
+  CircularProgress,
+  FormControlLabel,
+  Grid,
+  TextField,
+} from "@material-ui/core";
 
 import logoImage from "./images/logo.png";
 
@@ -28,6 +36,7 @@ import LiveHelpIcon from "@material-ui/icons/LiveHelp";
 import faq from "./FAQ";
 
 import gynaeImage from "./images/gynae-clinic.png";
+import BookService from "./services/BookService";
 
 function Copyright() {
   return (
@@ -58,19 +67,20 @@ const useStyles = makeStyles((theme) => ({
     marginLeft: theme.spacing(2),
     marginRight: theme.spacing(2),
     [theme.breakpoints.up(600 + theme.spacing(2) * 2)]: {
-      width: 700,
+      width: 600,
       marginLeft: "auto",
       marginRight: "auto",
     },
+    letterSpacing: "0.8px",
   },
   paper: {
-    marginTop: theme.spacing(1),
+    marginTop: theme.spacing(0),
     marginBottom: theme.spacing(3),
     padding: theme.spacing(1),
     [theme.breakpoints.up(600 + theme.spacing(3) * 2)]: {
-      marginTop: theme.spacing(2),
+      marginTop: theme.spacing(0),
       marginBottom: theme.spacing(2),
-      padding: theme.spacing(3),
+      padding: theme.spacing(5),
     },
   },
   stepper: {
@@ -154,7 +164,30 @@ const useStyles = makeStyles((theme) => ({
     marginRight: "10px",
     fontSize: "32px",
   },
-  gynaeLogo: {},
+
+  pageTitle: {
+    color: theme.palette.secondary.main,
+    fontSize: "1.6rem",
+    fontWeight: "600",
+  },
+
+  BookButton: {
+    width: "100%",
+    height: "50px",
+    borderRadius: "30px",
+    fontSize: "1.3rem",
+    color: "#fff",
+    fontWeight: "600",
+    backgroundColor: theme.palette.primary.main,
+    cursor: "pointer",
+    padding: "10px 20px",
+    marginTop: "20px",
+  },
+
+  backdrop: {
+    zIndex: 999,
+    color: "#fff",
+  },
 }));
 
 export default function WelcomeForm() {
@@ -163,302 +196,260 @@ export default function WelcomeForm() {
 
   //// ** Dialog
 
-  const [open, setOpen] = React.useState(false);
-  const [scroll, setScroll] = React.useState("paper");
-
-  const [openFAQ, setOpenFAQ] = React.useState(false);
-  const [scrollFAQ, setScrollFAQ] = React.useState("paper");
-
-  const descriptionElementRef = React.useRef(null);
-
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
-  React.useEffect(() => {
-    if (open) {
-      const { current: descriptionElement } = descriptionElementRef;
-      if (descriptionElement !== null) {
-        descriptionElement.focus();
-      }
+  const [fullname, setFullname] = React.useState(state.fullname ?? "");
+  const [email, setEmail] = React.useState(state.email ?? "");
+  const [phone, setPhone] = React.useState(state.phone ?? "");
+
+  const [faceChecked, setFaceChecked] = React.useState(false);
+  const [telChecked, setTelChecked] = React.useState(false);
+
+  const [saving, setSaving] = React.useState(false);
+
+  const faceCheckClicked = (event) => {
+    setFaceChecked(event.target.checked);
+    setState((state) => ({ ...state, faceChecked: event.target.value }));
+  };
+
+  const telCheckClicked = (event) => {
+    setTelChecked(event.target.checked);
+    setState((state) => ({ ...state, telChecked: event.target.value }));
+  };
+
+  const fullnameChanged = (event) => {
+    setFullname(event.target.value);
+    setState((state) => ({ ...state, fullname: event.target.value }));
+    if (event.target.value && event.target.value.trim().length > 0) {
+      setState((state) => ({ ...state, fullnameError: false }));
     }
-  }, [open]);
+  };
 
-  const descriptionElementRefFAQ = React.useRef(null);
-  React.useEffect(() => {
-    if (openFAQ) {
-      const { current: descriptionElementFAQ } = descriptionElementRefFAQ;
-      if (descriptionElementFAQ !== null) {
-        descriptionElementFAQ.focus();
-      }
+  const emailChanged = (event) => {
+    setEmail(event.target.value);
+    setState((state) => ({ ...state, email: event.target.value }));
+    if (event.target.value && EmailValidator.validate(event.target.value)) {
+      setState((state) => ({ ...state, emailError: false }));
     }
-  }, [openFAQ]);
-
-  const handleClickOpen = (scrollType) => () => {
-    setOpen(true);
-    setScroll(scrollType);
   };
 
-  const handleClickOpenFAQ = (scrollType) => () => {
-    setOpenFAQ(true);
-    setScrollFAQ(scrollType);
+  const phoneChanged = (event) => {
+    setPhone(event.target.value);
+    setState((state) => ({ ...state, phone: event.target.value }));
+    if (event.target.value && event.target.value.trim().length >= 6) {
+      setState((state) => ({ ...state, phoneError: false }));
+    }
   };
 
-  const handleClose = () => {
-    setOpen(false);
+  const bookClicked = async () => {
+    if (!validateBooking()) {
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      const payload = {
+        fullname: fullname,
+        email: email,
+        phone: phone,
+        faceToFaceConsultation: faceChecked,
+        telephoneConsultation: telChecked,
+      };
+      const res = await BookService.bookConsultation(payload);
+      setSaving(false);
+      if (res.data.status === "OK") {
+        setState((state) => ({ ...state, booking: res.data.booking }));
+        alert(res.data.booking._id);
+      }
+    } catch (err) {
+      console.error(err);
+      setSaving(false);
+    }
   };
 
-  const handleCloseFAQ = () => {
-    setOpenFAQ(false);
-  };
+  const validateBooking = () => {
+    let error = false;
+    if (!fullname || fullname.length < 1) {
+      setState((state) => ({ ...state, fullnameError: true }));
+      error = true;
+    }
 
-  const getStartedClicked = (event) => {
-    setState((state) => ({ ...state, getStarted: true, agreed: true }));
+    if (!email || !EmailValidator.validate(email)) {
+      setState((state) => ({ ...state, emailError: true }));
+      error = true;
+    }
+
+    if (!phone || phone.length < 5) {
+      setState((state) => ({ ...state, phoneError: true }));
+      error = true;
+    }
+
+    return !error;
   };
 
   return (
     <React.Fragment>
       <CssBaseline />
-      <AppBar position="absolute" color="default" className={classes.appBar}>
-        <Toolbar>
+      <main className={classes.layout}>
+        <Paper className={classes.paper}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: "20px",
+            }}
+          >
+            <span className={classes.pageTitle}> Book a Consultation </span>
+          </div>
+
           <Grid
             container
-            direction="row"
-            spacing={1}
-            justify="center"
-            alignItems="center"
+            spacing={2}
+            alignItems="baseline"
+            style={{ marginTop: "10px" }}
           >
-            <Grid item item xs={10}>
-              <Typography
-                style={{ fontWeight: "400" }}
-                variant="h6"
-                color="inherit"
-                noWrap
-              >
-                Medical Express Clinic
-              </Typography>
+            <Grid item xs={12}>
+              <TextField
+                error={state.fullnameError ? true : false}
+                required
+                id="full Name"
+                label="Full Name"
+                fullWidth
+                autoComplete="name"
+                value={fullname}
+                onChange={fullnameChanged}
+                variant="outlined"
+              />
             </Grid>
 
-            <Grid item xs={2}>
-              <img
-                className={classes.logoImage}
-                src={logoImage}
-                alt="logo image"
+            <Grid item xs={12}>
+              <TextField
+                error={state.emailError ? true : false}
+                required
+                id="email"
+                label="Email Address"
+                fullWidth
+                autoComplete="email"
+                type="email"
+                value={email}
+                onChange={emailChanged}
+                variant="outlined"
+                // helperText = 'This email address is where you will receive your results. Please tick the box below to confirm that this is a private email address to which you are happy for us to send your results.'
+              />
+            </Grid>
+
+            <Grid item xs={12}>
+              <TextField
+                error={state.phoneError ? true : false}
+                required
+                id="phone"
+                label="Contact Phone Number"
+                fullWidth
+                autoComplete="tel"
+                value={phone}
+                onChange={phoneChanged}
+                variant="outlined"
               />
             </Grid>
           </Grid>
-        </Toolbar>
-      </AppBar>
-      <main className={classes.layout}>
-        <Paper className={classes.paper}>
-          {state.firstname && state.firstname.length > 0 && (
-            <div
-              style={{
-                textAlign: "center",
-                fontSize: "1rem",
-                marginBottom: "10px",
-                color: "#777",
-                backgroundColor: "#f7fbff",
-                padding: "20px",
-              }}
+          <div
+            style={{
+              marginTop: "20px",
+              color: "#555",
+              fontSize: "1rem",
+              width: "100%",
+              textAlign: "left",
+              lineHeight: "1.5rem",
+            }}
+          >
+            Please choose your preference consultation:
+          </div>
+
+          <div
+            style={{
+              marginTop: "10px",
+              color: "#777",
+              fontSize: "1rem",
+              width: "100%",
+              textAlign: "left",
+            }}
+          >
+            <FormControlLabel
+              control={
+                <Checkbox
+                  color="primary"
+                  name="check1"
+                  checked={faceChecked}
+                  onChange={faceCheckClicked}
+                />
+              }
+              label={
+                <span style={{ fontSize: "1rem", color: "#999" }}>
+                  {`Face to Face Consultation`}
+                </span>
+              }
+            />
+          </div>
+
+          <div
+            style={{
+              marginTop: "0px",
+              color: "#777",
+              fontSize: "1rem",
+              width: "100%",
+              textAlign: "left",
+            }}
+          >
+            <FormControlLabel
+              control={
+                <Checkbox
+                  color="primary"
+                  name="check2"
+                  checked={telChecked}
+                  onChange={telCheckClicked}
+                />
+              }
+              label={
+                <span style={{ fontSize: "1rem", color: "#999" }}>
+                  {`Telephone Consultation`}
+                </span>
+              }
+            />
+          </div>
+
+          <div className={classes.BookButton} onClick={bookClicked}>
+            Book Consultation
+          </div>
+
+          <div
+            style={{
+              marginTop: "20px",
+              color: "#999",
+              fontSize: "0.8rem",
+              width: "100%",
+              textAlign: "left",
+            }}
+          >
+            We will never share your data with 3rd parties for marketing
+            purposes. For more information about how Optimal Vision uses, shares
+            and protects your personal data, see our
+            <a
+              href="https://www.optimalvision.co.uk/privacy-policy"
+              target="_blank"
+              style={{ color: "#777", marginLeft: "5px" }}
             >
-              Welcome back{" "}
-              <span
-                style={{
-                  fontWeight: "500",
-                  color: "#333",
-                  fontStyle: "italic",
-                }}
-              >
-                {state.firstname}
-              </span>
-            </div>
-          )}
+              Privacy Policy
+            </a>
+          </div>
 
-          <Typography
-            style={{ fontWeight: 700, marginBottom: "20px" }}
-            component="h1"
-            variant="h6"
-            align="center"
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <img
-                className={classes.gynaeLogo}
-                src={gynaeImage}
-                alt="logo image"
-              />
-            </div>
-          </Typography>
-
-          <p
-            className={
-              isMobile ? classes.textContentMobile : classes.textContent
-            }
-          >
-            Gynae Clinic is proud to offer an exceptional level of service that
-            consistently exceeds the expectations of our patients.
-          </p>
-
-          <p
-            className={
-              isMobile ? classes.textContentMobile : classes.textContent
-            }
-          >
-            Flexible, same-day appointments, a dedicated and talented team of
-            doctors and staff, and the latest treatments set our clinic apart
-            from the rest.
-          </p>
-
-          <p
-            className={
-              isMobile ? classes.textContentMobile : classes.textContent
-            }
-          >
-            Our Gynae Clinic is conveniently located on Harley Street, central
-            London to ensure all your gynaecological needs are met quickly,
-            easily, and with minimal disruption to your schedule.
-          </p>
-
-          <Button
-            variant="contained"
-            className={classes.getStartedButton}
-            color="primary"
-            onClick={getStartedClicked}
-            onTouchTap={getStartedClicked}
-          >
-            Get Started
-          </Button>
+          <Backdrop className={classes.backdrop} open={saving}>
+            <CircularProgress color="inherit" />
+          </Backdrop>
         </Paper>
-
-        <Button
-          variant="contained"
-          className={classes.privacyButton}
-          color="default"
-          startIcon={<HttpsIcon />}
-          onClick={handleClickOpen("paper")}
-          onTouchTap={handleClickOpen("paper")}
-        >
-          Privacy
-        </Button>
-
-        <Button
-          variant="contained"
-          className={classes.faqButton}
-          color="default"
-          startIcon={<LiveHelpIcon />}
-          onClick={handleClickOpenFAQ("paper")}
-          onTouchTap={handleClickOpenFAQ("paper")}
-        >
-          FAQ
-        </Button>
-        <Dialog
-          open={open}
-          onClose={handleClose}
-          scroll={scroll}
-          aria-labelledby="scroll-dialog-title"
-          aria-describedby="scroll-dialog-description"
-        >
-          <DialogTitle id="scroll-dialog-title">
-            Application Disclaimer
-          </DialogTitle>
-          <DialogContent dividers={scroll === "paper"}>
-            <DialogContentText
-              id="scroll-dialog-description"
-              ref={descriptionElementRef}
-              tabIndex={-1}
-            >
-              <div style={{ textAlign: "justify", padding: "10px" }}>
-                Medical Express Clinic will not contact you for any other reason
-                than to share your test results, and certificate if selected,
-                via the email address provided. The information provided to us
-                via this registration form is never shared with any other
-                organisations, except when this is required by law. Information
-                provided will never be used for marketing purposes, you cannot
-                opt in. In the case of a notable health result, our doctor will
-                call on the telephone number provided to inform you of your
-                result and provide additional advice or guidance. If we cannot
-                get hold of you, we will email you asking you to contact the
-                clinic.
-              </div>
-            </DialogContentText>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleClose} color="primary">
-              Close
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        <Dialog
-          open={openFAQ}
-          onClose={handleCloseFAQ}
-          scroll={scrollFAQ}
-          aria-labelledby="scroll-dialog-title-FAQ"
-          aria-describedby="scroll-dialog-description-FAQ"
-        >
-          <DialogTitle id="scroll-dialog-title">FAQ</DialogTitle>
-          <DialogContent dividers={scroll === "paper"}>
-            <DialogContentText
-              id="scroll-dialog-description-FAQ"
-              ref={descriptionElementRefFAQ}
-              tabIndex={-1}
-            >
-              <div style={{ textAlign: "justify", padding: "10px" }}>
-                {faq.map((element) => (
-                  <React.Fragment>
-                    <p
-                      style={{
-                        borderLeft: "4px solid #f280c4",
-                        background: "#eee",
-                        fontWeight: "600",
-                        paddingLeft: "10px",
-                        paddingRight: "10px",
-                        lineHeight: "30px",
-                      }}
-                    >
-                      <span style={{ color: "#f280c4", fontSize: "24px" }}>
-                        {" "}
-                        Q.{" "}
-                      </span>
-                      {element.question}
-                    </p>
-
-                    <p
-                      style={{
-                        borderLeft: "4px solid #999",
-                        background: "#fff",
-                        fontWeight: "400",
-                        color: "#555",
-                        paddingLeft: "10px",
-                        paddingRight: "30px",
-                        lineHeight: "50px",
-                      }}
-                    >
-                      <span style={{ color: "#555", fontSize: "24px" }}>
-                        {" "}
-                        A.{" "}
-                      </span>
-                      {element.answer}
-                    </p>
-                  </React.Fragment>
-                ))}
-              </div>
-            </DialogContentText>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleCloseFAQ} color="primary">
-              Close
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        <Copyright />
       </main>
     </React.Fragment>
   );
