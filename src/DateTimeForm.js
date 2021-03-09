@@ -38,6 +38,8 @@ import faq from "./FAQ";
 import gynaeImage from "./images/gynae-clinic.png";
 import BookService from "./services/BookService";
 
+import "./badge.css"
+
 function Copyright() {
   return (
     <Typography variant="body2" color="textSecondary" align="center">
@@ -178,21 +180,94 @@ const useStyles = makeStyles((theme) => ({
     fontSize: "1.3rem",
     color: "#fff",
     fontWeight: "600",
-    backgroundColor: theme.palette.primary.main,
+    backgroundColor: theme.palette.secondary.main,
     cursor: "pointer",
     padding: "10px 20px",
-    marginTop: "20px",
+    marginTop: "30px",
   },
 
   backdrop: {
     zIndex: 999,
     color: "#fff",
   },
+
+  day: {
+    width: "100%",
+    padding: "10px",
+    borderRadius: "30px",
+    color : theme.palette.primary.main,
+    borderColor: theme.palette.primary.main,
+    border: "1px solid",
+    fontWeight: "500",
+    cursor: "pointer",
+    transition : "all 0.3s ease",
+    "&:hover" :{
+      backgroundColor : theme.palette.primary.main,
+      color: "#fff"
+    }
+  },
+
+  daySelected: {
+    width: "100%",
+    padding: "10px",
+    borderRadius: "30px",
+    backgroundColor : theme.palette.primary.main,
+    color: "#fff",
+    borderColor: theme.palette.primary.main,
+    border: "1px solid",
+    fontWeight: "500",
+    cursor: "pointer",
+  },
+
+  
+  time: {
+    width: "100%",
+    padding: "10px",
+    borderRadius: "4px",
+    color : "#777",
+    borderColor: "#777",
+    border: "1px solid",
+    fontWeight: "500",
+    cursor: "pointer",
+    transition : "all 0.3s ease",
+    "&:hover" :{
+      backgroundColor : theme.palette.primary.main,
+      borderColor: theme.palette.primary.main,
+      color: "#fff"
+    }
+  },
+
+  timeSelected: {
+    width: "100%",
+    padding: "10px",
+    borderRadius: "4px",
+    backgroundColor : theme.palette.primary.main,
+    color: "#fff",
+    borderColor: theme.palette.primary.main,
+    border: "1px solid",
+    fontWeight: "500",
+    cursor: "pointer",
+  },
+
+
+
+  dayDisabled: {
+    width: "100%",
+    padding: "10px",
+    borderRadius: "30px",
+    backgroundColor : "#ddd",
+    color: "#fff",
+    fontWeight: "500",
+    cursor: "not-allowed",
+  },
+
+
 }));
 
-export default function WelcomeForm() {
+export default function DateTimeForm() {
   const [state, setState] = React.useContext(GlobalState);
   const classes = useStyles();
+
 
   //// ** Dialog
 
@@ -200,95 +275,45 @@ export default function WelcomeForm() {
     window.scrollTo(0, 0);
   }, []);
 
-  const [fullname, setFullname] = React.useState(state.fullname ?? "");
-  const [email, setEmail] = React.useState(state.email ?? "");
-  const [phone, setPhone] = React.useState(state.phone ?? "");
-
-  const [faceChecked, setFaceChecked] = React.useState(false);
-  const [telChecked, setTelChecked] = React.useState(false);
-
   const [saving, setSaving] = React.useState(false);
+  const [selectedDate, setSelectedDate] = React.useState(null)
 
-  const faceCheckClicked = (event) => {
-    setFaceChecked(event.target.checked);
-    setState((state) => ({ ...state, faceChecked: event.target.value }));
-  };
+  const [selectedTime, setSelectedTime] = React.useState(null)
 
-  const telCheckClicked = (event) => {
-    setTelChecked(event.target.checked);
-    setState((state) => ({ ...state, telChecked: event.target.value }));
-  };
+  const dayClicked = (date, dayLabel) => {
+    setSelectedDate(date)
+    setSelectedTime(null)
+    setState(state => ({...state, selectedDayLabel: dayLabel }))
+  }
 
-  const fullnameChanged = (event) => {
-    setFullname(event.target.value);
-    setState((state) => ({ ...state, fullname: event.target.value }));
-    if (event.target.value && event.target.value.trim().length > 0) {
-      setState((state) => ({ ...state, fullnameError: false }));
-    }
-  };
+  const timeClicked = (time) => {
+    setSelectedTime(time)
+    setState(state => ({...state, selectedTime: time }))
+  }
 
-  const emailChanged = (event) => {
-    setEmail(event.target.value);
-    setState((state) => ({ ...state, email: event.target.value }));
-    if (event.target.value && EmailValidator.validate(event.target.value)) {
-      setState((state) => ({ ...state, emailError: false }));
-    }
-  };
+  const submitClicked = async () =>
+  {
 
-  const phoneChanged = (event) => {
-    setPhone(event.target.value);
-    setState((state) => ({ ...state, phone: event.target.value }));
-    if (event.target.value && event.target.value.trim().length >= 6) {
-      setState((state) => ({ ...state, phoneError: false }));
-    }
-  };
-
-  const bookClicked = async () => {
-    if (!validateBooking()) {
-      return;
-    }
-
-    setSaving(true);
+    if (!selectedDate || !selectedTime)
+      return
+    
+    setSaving(true)
 
     try {
-      const payload = {
-        fullname: fullname,
-        email: email,
-        phone: phone,
-        faceToFaceConsultation: faceChecked,
-        telephoneConsultation: telChecked,
-      };
-      const res = await BookService.bookConsultation(payload);
-      setSaving(false);
-      if (res.data.status === "OK") {
-        setState((state) => ({ ...state, booking: res.data.booking, timeData : res.data.timeData }));
+      const res = await BookService.setDateTime(state.booking._id, selectedDate, selectedTime)
+      setSaving(false)
+      if (res.data.status === "OK")
+      {
+        setState(state => ({...state, finished: true, }))
       }
-    } catch (err) {
-      console.error(err);
-      setSaving(false);
     }
-  };
-
-  const validateBooking = () => {
-    let error = false;
-    if (!fullname || fullname.length < 1) {
-      setState((state) => ({ ...state, fullnameError: true }));
-      error = true;
+    catch(err)
+    {
+      console.error(err)
+      setSaving(false)
     }
-
-    if (!email || !EmailValidator.validate(email)) {
-      setState((state) => ({ ...state, emailError: true }));
-      error = true;
-    }
-
-    if (!phone || phone.length < 5) {
-      setState((state) => ({ ...state, phoneError: true }));
-      error = true;
-    }
-
-    return !error;
-  };
-
+  }
+  
   return (
     <React.Fragment>
       <CssBaseline />
@@ -302,127 +327,90 @@ export default function WelcomeForm() {
               marginBottom: "20px",
             }}
           >
-            <span className={classes.pageTitle}> Book a Consultation </span>
+            <span className={classes.pageTitle}> Thank You!</span>
           </div>
 
-          <Grid
-            container
-            spacing={2}
-            alignItems="baseline"
-            style={{ marginTop: "10px" }}
-          >
-            <Grid item xs={12}>
-              <TextField
-                error={state.fullnameError ? true : false}
-                required
-                id="full Name"
-                label="Full Name"
-                fullWidth
-                autoComplete="name"
-                value={fullname}
-                onChange={fullnameChanged}
-                variant="outlined"
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <TextField
-                error={state.emailError ? true : false}
-                required
-                id="email"
-                label="Email Address"
-                fullWidth
-                autoComplete="email"
-                type="email"
-                value={email}
-                onChange={emailChanged}
-                variant="outlined"
-                // helperText = 'This email address is where you will receive your results. Please tick the box below to confirm that this is a private email address to which you are happy for us to send your results.'
-              />
-            </Grid>
-
-            <Grid item xs={12}>
-              <TextField
-                error={state.phoneError ? true : false}
-                required
-                id="phone"
-                label="Contact Phone Number"
-                fullWidth
-                autoComplete="tel"
-                value={phone}
-                onChange={phoneChanged}
-                variant="outlined"
-              />
-            </Grid>
-          </Grid>
           <div
             style={{
               marginTop: "20px",
               color: "#555",
               fontSize: "1rem",
               width: "100%",
-              textAlign: "left",
+              textAlign: "center",
               lineHeight: "1.5rem",
             }}
           >
-            Please choose your preference consultation:
+            Your information has been submitted successfully.
           </div>
 
           <div
             style={{
               marginTop: "10px",
-              color: "#777",
+              color: "#555",
               fontSize: "1rem",
               width: "100%",
-              textAlign: "left",
+              textAlign: "center",
+              lineHeight: "1.8rem",
             }}
           >
-            <FormControlLabel
-              control={
-                <Checkbox
-                  color="primary"
-                  name="check1"
-                  checked={faceChecked}
-                  onChange={faceCheckClicked}
-                />
-              }
-              label={
-                <span style={{ fontSize: "1rem", color: "#999" }}>
-                  {`Face to Face Consultation`}
-                </span>
-              }
-            />
+            In order to help us to <strong>call you back</strong> at a time you
+            prefer, please choose a time below:
           </div>
 
-          <div
-            style={{
-              marginTop: "0px",
-              color: "#777",
-              fontSize: "1rem",
-              width: "100%",
-              textAlign: "left",
-            }}
-          >
-            <FormControlLabel
-              control={
-                <Checkbox
-                  color="primary"
-                  name="check2"
-                  checked={telChecked}
-                  onChange={telCheckClicked}
-                />
-              }
-              label={
-                <span style={{ fontSize: "1rem", color: "#999" }}>
-                  {`Telephone Consultation`}
-                </span>
-              }
-            />
+          {state.timeData && state.timeData.status === "OK" && (
+            <React.Fragment>
+              <Grid container spacing={2} style={{ marginTop: "20px" }}>
+                {state.timeData.days.map((day) => (
+                  <Grid item xs={12} sm={6} hidden={!day.available}>
+                    <div
+                      className={
+                        day.available
+                          ? day.date === selectedDate
+                            ? classes.daySelected
+                            : classes.day
+                          : classes.dayDisabled
+                      }
+                      onClick={() =>
+                        day.available ? dayClicked(day.date, day.dayLabel) : null
+                      }
+                    >
+                      {day.dayLabel}
+                    </div>
+                  </Grid>
+                ))}
+              </Grid>
+
+              {selectedDate && (
+                <React.Fragment>
+                  <div  style={{ marginTop: "20px", fontWeight:"500", textAlign:"center" }}>
+                    Please choose your preferred time :
+                  </div>
+                  <Grid container spacing={2} style={{ marginTop: "10px" }}>
+                    {state.timeData.defaultTimes.map((time,index) => (
+                      <Grid item xs={12} sm={6} hidden={selectedDate === state.timeData.days[0].date  && index < state.timeData.firstTimeIndex}>
+                        <div
+                          className={
+                            time === selectedTime
+                              ? classes.timeSelected
+                              : classes.time
+                          }
+                          onClick={() => timeClicked(time)}
+                        >
+                          {time}
+                        </div>
+                      </Grid>
+                    ))}
+                  </Grid>
+                </React.Fragment>
+              )}
+            </React.Fragment>
+          )}
+
+          <div style={{display:"flex", justifyContent:"center", marginTop:"30px"}}>
+              <div class="discount-label red"> <span>NOW Up-to £1000 off * </span> </div>
           </div>
 
-          <div className={classes.BookButton} onClick={bookClicked}>
-            Book Consultation
-          </div>
+          <div className={classes.BookButton} onClick={() => submitClicked()}>Submit</div>
 
           <div
             style={{
@@ -443,6 +431,10 @@ export default function WelcomeForm() {
             >
               Privacy Policy
             </a>
+
+            <p style={{color:"#f25d00", fontWeight:"600"}}>
+            * Your total surgery cost during this month
+            </p>
           </div>
 
           <Backdrop className={classes.backdrop} open={saving}>
