@@ -10,6 +10,8 @@ import Typography from "@material-ui/core/Typography";
 import GlobalState from "./GlobalState";
 import * as EmailValidator from "email-validator";
 
+import {Helmet} from "react-helmet";
+
 import Dialog from "@material-ui/core/Dialog";
 import DialogActions from "@material-ui/core/DialogActions";
 import DialogContent from "@material-ui/core/DialogContent";
@@ -278,6 +280,10 @@ export default function FinalResultsForm() {
   return (
     <React.Fragment>
       <CssBaseline />
+      <Helmet>
+        <script>gtag_report_conversion ();</script>
+      </Helmet>
+
       <main className={classes.layout}>
         <Paper className={classes.paper}>
           <div
@@ -289,7 +295,7 @@ export default function FinalResultsForm() {
               marginTop: "20px",
             }}
           >
-            <img src={thankyouImage} alt="Thank You"/>
+            <img src={thankyouImage} alt="Thank You" />
           </div>
 
           <div
@@ -315,12 +321,12 @@ export default function FinalResultsForm() {
               width: "100%",
               textAlign: "center",
               lineHeight: "3rem",
-            
             }}
           >
-            We will call you back soon! <br/> <span className={classes.label}>{state.selectedDayLabel}</span> <br/>  <span className={classes.label}>{state.selectedTime}</span>
+            We will call you back soon! <br />{" "}
+            <span className={classes.label}>{state.selectedDayLabel}</span>{" "}
+            <br /> <span className={classes.label}>{state.selectedTime}</span>
           </div>
-
         </Paper>
       </main>
     </React.Fragment>

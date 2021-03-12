@@ -19,6 +19,32 @@
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
 
     <script src="https://js.squareup.com/v2/paymentform"></script>
+
+    <script async src="https://www.googletagmanager.com/gtag/js?id=AW-576260988"></script>
+
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+    
+      gtag('config', 'AW-576260988');
+    </script>
+
+    <script>
+      function gtag_report_conversion(url) {
+        var callback = function () {
+          if (typeof(url) != 'undefined') {
+            window.location = url;
+          }
+        };
+        gtag('event', 'conversion', {
+            'send_to': 'AW-576260988/O4n2CO_et_sBEPyW5JIC',
+            'event_callback': callback
+        });
+        return false;
+      }
+      </script>
+
     <!--
       Notice the use of %PUBLIC_URL% in the tags above.
       It will be replaced with the URL of the `public` folder during the build.
