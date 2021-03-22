@@ -257,6 +257,7 @@ export default function WelcomeForm() {
         phone: phone,
         faceToFaceConsultation: faceChecked,
         telephoneConsultation: telChecked,
+        referrer: state.referrer
       };
       const res = await BookService.bookConsultation(payload);
       setSaving(false);

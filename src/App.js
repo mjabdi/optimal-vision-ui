@@ -1,22 +1,22 @@
 import "./App.css";
-import Checkout from "./checkout";
 import WelcomeForm from "./WelcomeForm";
-import AgreementForm from "./AgreementForm";
 import GlobalState from "./GlobalState";
 import React, { useEffect } from "react";
-import BookService from "./services/BookService";
 import theme from "./theme";
 import { MuiThemeProvider, CssBaseline } from "@material-ui/core";
 import GlobalStyles from "./GlobalStyles";
 import DateTimeForm from "./DateTimeForm";
 import FinalResultsForm from "./FinalResultsForm";
 
-const getPathId = () => {
-  let urlElements = window.location.pathname.split("/");
-  if (urlElements.length === 2) {
-    if (urlElements[1].startsWith("id")) return urlElements[1].substr(2);
+const getReferrer = () => {
+  let search = window.location.search;
+  if (search && search.indexOf("?ref=") === 0)
+  {
+    return search.substr(5)
   }
-  return null;
+
+
+  return "";
 };
 
 function App() {
@@ -26,39 +26,12 @@ function App() {
     persons: [],
   });
 
-  // useEffect(() => {
-  //   const bookingId = getPathId();
+  useEffect(() => {
 
-  //   if (bookingId) {
-  //     BookService.getBookingById(bookingId)
-  //       .then((res) => {
-  //         if (res.data) {
-  //           const booking = res.data;
-  //           setState((state) => ({ ...state, firstname: booking.forename }));
-  //           setState((state) => ({ ...state, lastname: booking.surname }));
-  //           setState((state) => ({ ...state, email: booking.email }));
-  //           setState((state) => ({ ...state, retypeEmail: booking.email }));
-  //           setState((state) => ({ ...state, gender: booking.gender }));
-  //           setState((state) => ({ ...state, title: booking.title }));
-  //           setState((state) => ({ ...state, birthDate: booking.birthDate }));
-  //           setState((state) => ({
-  //             ...state,
-  //             passportNumber: booking.passportNumber || "",
-  //           }));
-  //           setState((state) => ({
-  //             ...state,
-  //             passportNumber2: booking.passportNumber2 || "",
-  //           }));
-  //           setState((state) => ({ ...state, phone: booking.phone }));
-  //           setState((state) => ({ ...state, postCode: booking.postCode }));
-  //           setState((state) => ({ ...state, address: booking.address }));
-  //         }
-  //       })
-  //       .catch((err) => {
-  //         console.error(err);
-  //       });
-  //   }
-  // }, []);
+    const referrer = getReferrer()
+    setState(state => ({...state, referrer : referrer}))
+
+  }, []);
 
   return (
     <GlobalState.Provider value={[state, setState]}>
